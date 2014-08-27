@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.bg-bar {
+  fill: lightgray;    
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #666;
+  shape-rendering: crispEdges;
+}
+
+#slider {
+ position: absolute;
+ top: 5%;
+ width: 80%;
+ left: 10%
+}
+    
+</style>
+<link href="d3.slider.css" rel="stylesheet" type="text/css" /> 
+<body>
+    <h2>Move the slider to add or remove seats</h2>
+<div id="slider"></div>
+</body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.slider.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+<script>
+
+var margin = {top: 20, right: 20, bottom: 60, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+var rad = d3.scale.linear()
+    .domain([0,1])
+    .range([Math.PI,0]);
+
+var rot = d3.scale.linear()
+    .domain([0,1])
+    .range([-90,90]);
+    
+var col = d3.scale.category20();
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var seatsPerRow = [19,23,27,31], 
+    radiusPerRow = [150,200,250,300];
+    
+var seatsCumul = seatsPerRow.concat();
+
+for (var i = 0; i < seatsPerRow.length; i++){
+    seatsCumul[i] = seatsPerRow.slice(0, i + 1).reduce(function(p, i){ return p + i; });
+}
+
+seatsCumul.unshift(0);
+
+var rowAssign = function (seat) {
+  var row = 1;
+  var a = 0;
+  seatsPerRow.forEach( function (s) {
+    if (seat > s + a){
+      row++;
+      a += s;  
+    }
+  });
+  return row;
+}
+    
+var data = [];
+
+for (var i = 0; i < 100; i++) {
+  var r = rowAssign(i+1);
+  var sir = i+1 - seatsCumul[r-1];
+  data.push({seatnum: i+1, row: r, seatinrow: sir});
+}    
+            
+svg.selectAll('rect')
+   .data(data, function(d) { return d.seatnum})
+   .enter()
+   .append('rect')
+   .attr('x', function (d) { return 400 + radiusPerRow[d.row - 1] * Math.cos(rad((d.seatinrow - 1)/(seatsPerRow[d.row - 1] - 1))); })
+   .attr('y', function (d) { return 400 - radiusPerRow[d.row - 1] * Math.sin(rad((d.seatinrow - 1)/(seatsPerRow[d.row - 1] - 1))); })
+   .attr('height',15)
+   .attr('width',15)
+   .style('fill','none')
+   .style('stroke','none')
+   .attr("transform", function (d) { return "rotate(" + rot((d.seatinrow - 1)/(seatsPerRow[d.row - 1] - 1)) + "," + (400 + radiusPerRow[d.row - 1] * Math.cos(rad((d.seatinrow - 1)/(seatsPerRow[d.row - 1] - 1)))) + "," + (400 - radiusPerRow[d.row - 1] * Math.sin(rad((d.seatinrow - 1)/(seatsPerRow[d.row - 1] - 1)))) + ")" });
+
+var fillOrder = [10,9,11,8,12,7,13,6,14,5,15,4,16,3,17,2,18,1,19,
+                 31,30,32,29,33,28,34,27,35,26,36,25,37,24,38,23,39,22,40,21,41,20,42,
+                 56,55,57,54,58,53,59,52,60,51,61,50,62,49,63,48,64,47,65,46,66,45,67,44,68,43,69,
+                 85,84,86,83,87,82,88,81,89,80,90,79,91,78,92,77,93,76,94,75,95,74,96,73,97,72,98,71,99,70,100]; 
+    
+var toFill = 60;    
+    
+ d3.select('#slider').call(d3.slider().axis(true)
+   .on("slide", function(evt, value) {
+      toFill = value;
+       
+    svg.selectAll('rect')    
+   .data(data, function(d) { return d.seatnum})
+  /* .style('fill', function(d) {
+     if (fillOrder.slice(0,toFill).indexOf(d.seatnum) > -1)
+         return col(Math.random());
+     else
+         return 'none';
+   }) */
+    .style('stroke', function(d) {
+     if (fillOrder.slice(0,toFill).indexOf(d.seatnum) > -1)
+         return 'black';
+     else
+         return 'none';
+   });
+    }))
+   
+
+
+
+</script>
